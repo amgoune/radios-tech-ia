@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radios Tech &amp; IA</title>
+<meta name="description" content="12 radios en direct : informatique, IA et actualité, en français, en anglais et du Maroc.">
+<style>
+/* Mise en page : liste de stations filtrable, lecteur fixé en bas de l'écran. */
+:root {
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --fg: #16202a;
+  --muted: #5b6875;
+  --line: #d9dfe5;
+  --accent: #0b6e8a;
+  --accent-fg: #ffffff;
+  --live: #c2361f;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f151b; --surface: #18212a; --fg: #e6edf3; --muted: #9aa8b5;
+    --line: #2a3640; --accent: #4fb8d6; --accent-fg: #06222b; --live: #ff7a5c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f151b; --surface: #18212a; --fg: #e6edf3; --muted: #9aa8b5;
+  --line: #2a3640; --accent: #4fb8d6; --accent-fg: #06222b; --live: #ff7a5c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px calc(150px + env(safe-area-inset-bottom, 0px));
+}
+.wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 14px; }
+header h1 { margin: 0; font-size: 1.35rem; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
+.filtres { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtres button {
+  font: inherit; font-size: 0.9rem; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer;
+}
+.filtres button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.groupe { display: grid; gap: 6px; }
+.groupe h2 {
+  margin: 8px 0 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+.liste { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.liste li + li { border-top: 1px solid var(--line); }
+.station {
+  width: 100%; display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center;
+  padding: 11px 14px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.station:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.station:focus-visible, .filtres button:focus-visible, .lecteur button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pastille {
+  width: 40px; height: 40px; border-radius: 8px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent);
+  font: 700 0.8rem var(--mono); letter-spacing: 0.02em;
+}
+.station .txt { min-width: 0; }
+.station .nom { font-weight: 600; display: block; }
+.station .desc { color: var(--muted); font-size: 0.85rem; display: block; }
+.station .etat { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+.station[aria-current="true"] .pastille { background: var(--accent); color: var(--accent-fg); }
+.station[aria-current="true"] .etat { color: var(--live); font-weight: 600; }
+.ia { font: 600 0.68rem var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; color: var(--muted); vertical-align: 1px; }
+.note { color: var(--muted); font-size: 0.8rem; margin: 4px 0 0; }
+
+.lecteur {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.lecteur .in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; }
+#jouer {
+  width: 64px; height: 64px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-fg); display: grid; place-items: center;
+}
+#jouer svg { width: 28px; height: 28px; fill: currentColor; }
+#jouer:disabled { opacity: 0.45; cursor: default; }
+.info { min-width: 0; display: grid; gap: 6px; }
+#enCours { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#statut { font-size: 0.82rem; color: var(--muted); }
+#statut.direct { color: var(--live); font-weight: 600; }
+#statut.erreur { color: var(--live); }
+.vol { display: flex; align-items: center; gap: 8px; }
+.vol button { font: inherit; background: none; border: 1px solid var(--line); color: var(--fg); border-radius: 6px; padding: 2px 8px; cursor: pointer; }
+#volume { flex: 1; min-width: 0; accent-color: var(--accent); }
+#volTxt { font: 0.8rem var(--mono); font-variant-numeric: tabular-nums; width: 3.2em; text-align: right; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) {
+  #statut.direct::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--live); margin-right: 6px; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: 0.25; } }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Radios Tech &amp; IA</h1>
+    <p>Informatique, intelligence artificielle et actualité, en direct.</p>
+  </header>
+
+  <div class="filtres" role="group" aria-label="Filtrer par langue">
+    <button type="button" id="f-tout" data-f="tout" aria-pressed="true">Toutes</button>
+    <button type="button" id="f-fr" data-f="fr" aria-pressed="false">Français</button>
+    <button type="button" id="f-en" data-f="en" aria-pressed="false">Anglais</button>
+    <button type="button" id="f-ma" data-f="ma" aria-pressed="false">Maroc</button>
+  </div>
+
+  <div id="groupes"></div>
+  <p class="note"><span class="ia">IA</span> = programmes écrits et lus par des intelligences artificielles.</p>
+</div>
+
+<div class="lecteur" role="region" aria-label="Lecteur">
+  <div class="in">
+    <button type="button" id="jouer" aria-label="Lecture" disabled></button>
+    <div class="info">
+      <div id="enCours">Choisis une radio</div>
+      <div id="statut">Touche une radio dans la liste pour l'écouter.</div>
+      <div class="vol">
+        <button type="button" id="muet" aria-label="Couper le son">Muet</button>
+        <input type="range" id="volume" min="0" max="100" step="5" value="80" aria-label="Volume">
+        <span id="volTxt">80 %</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<audio id="audio" preload="none"></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" defer></script>
+<script>
+"use strict";
+const RADIOS = [
+  { id: "tokenfm",   g: "fr", code: "TOK", nom: "Token FM", ia: true,  desc: "L'actualité de l'IA 24 h/24, avec ses sources", url: "https://tokenfm.fr/live.mp3" },
+  { id: "bfmbiz",    g: "fr", code: "BFM", nom: "BFM Business",          desc: "Économie et tech (Tech & Co)", url: "https://audio.bfmtv.com/bfmbusiness_128.mp3" },
+  { id: "frculture", g: "fr", code: "FCU", nom: "France Culture",        desc: "Numérique, sciences, idées", url: "https://icecast.radiofrance.fr/franceculture-midfi.mp3" },
+  { id: "franceinfo",g: "fr", code: "FIN", nom: "franceinfo",            desc: "Info en continu, chroniques tech", url: "https://icecast.radiofrance.fr/franceinfo-midfi.mp3" },
+  { id: "rfi",       g: "fr", code: "RFI", nom: "RFI Monde",             desc: "Information internationale", url: "https://rfiafrique64k.ice.infomaniak.ch/rfimonde-64.mp3" },
+  { id: "ajar",      g: "en", code: "AJR", nom: "Ajar", ia: true,        desc: "Cybersecurity and AI, around the clock", url: "https://zingu.ai/cyber-stream" },
+  { id: "jupiter",   g: "en", code: "JB",  nom: "Jupiter Broadcasting",  desc: "Linux, open source, self-hosting (live shows)", url: "https://n09.radiojar.com/0uk94cu0xrquv" },
+  { id: "bloomberg", g: "en", code: "BBG", nom: "Bloomberg Radio",       desc: "Business and big tech", url: "https://playerservices.streamtheworld.com/api/livestream-redirect/WBBRAMAAC.aac" },
+  { id: "bbcws",     g: "en", code: "BBC", nom: "BBC World Service",     desc: "World news, tech programmes", url: "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service" },
+  { id: "npr",       g: "en", code: "NPR", nom: "NPR",                   desc: "US news, tech stories", url: "https://npr-ice.streamguys1.com/live.mp3" },
+  { id: "atlantic",  g: "ma", code: "ATL", nom: "Atlantic Radio",        desc: "Économie et actualité du Maroc", url: "https://atlantic-sonic.nindohost.net:9300/stream" },
+  { id: "medi1",     g: "ma", code: "M1",  nom: "Médi 1 Radio",          desc: "Information Maghreb", url: "https://cdn.live.easybroadcast.io/live/83_medi1radio-maghreb_8s9i4bn/playlist.m3u8", hls: true }
+];
+const GROUPES = { fr: "Français", en: "Anglais", ma: "Maroc" };
+
+const $ = (s) => document.querySelector(s);
+const audio = $("#audio");
+let actuelle = null, hls = null, filtre = "tout";
+
+function lire(cle, def) { try { const v = localStorage.getItem("radios." + cle); return v === null ? def : v; } catch (e) { return def; } }
+function ecrire(cle, v) { try { localStorage.setItem("radios." + cle, String(v)); } catch (e) {} }
+
+const ICONE_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+const ICONE_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+
+function construire() {
+  const z = $("#groupes"); z.textContent = "";
+  for (const g of Object.keys(GROUPES)) {
+    if (filtre !== "tout" && filtre !== g) continue;
+    const sec = document.createElement("section"); sec.className = "groupe";
+    const h = document.createElement("h2"); h.textContent = GROUPES[g]; sec.appendChild(h);
+    const ul = document.createElement("ul"); ul.className = "liste";
+    for (const r of RADIOS.filter((x) => x.g === g)) {
+      const li = document.createElement("li");
+      const b = document.createElement("button"); b.type = "button"; b.className = "station"; b.id = "st-" + r.id;
+      b.innerHTML = '<span class="pastille"></span><span class="txt"><span class="nom"></span><span class="desc"></span></span><span class="etat"></span>';
+      b.querySelector(".pastille").textContent = r.code;
+      b.querySelector(".nom").textContent = r.nom;
+      if (r.ia) { const t = document.createElement("span"); t.className = "ia"; t.textContent = "IA"; b.querySelector(".nom").appendChild(t); }
+      b.querySelector(".desc").textContent = r.desc;
+      b.addEventListener("click", () => choisir(r, true));
+      li.appendChild(b); ul.appendChild(li);
+    }
+    sec.appendChild(ul); z.appendChild(sec);
+  }
+  marquer();
+}
+
+function marquer() {
+  document.querySelectorAll(".station").forEach((b) => {
+    const cur = actuelle && b.id === "st-" + actuelle.id;
+    b.setAttribute("aria-current", cur ? "true" : "false");
+    b.querySelector(".etat").textContent = cur ? (audio.paused ? "choisie" : "en direct") : "";
+  });
+}
+
+function statut(txt, cls) { const s = $("#statut"); s.textContent = txt; s.className = cls || ""; }
+function majBouton() {
+  const j = $("#jouer");
+  j.disabled = !actuelle;
+  const enLecture = !audio.paused;
+  j.innerHTML = enLecture ? ICONE_PAUSE : ICONE_PLAY;
+  j.setAttribute("aria-label", enLecture ? "Pause" : "Lecture");
+  marquer();
+}
+
+function arreterHls() { if (hls) { try { hls.destroy(); } catch (e) {} hls = null; } }
+
+function brancher(r) {
+  arreterHls();
+  audio.removeAttribute("src");
+  if (r.hls && !audio.canPlayType("application/vnd.apple.mpegurl") && window.Hls && window.Hls.isSupported()) {
+    hls = new window.Hls({ lowLatencyMode: false });
+    hls.on(window.Hls.Events.ERROR, (ev, d) => { if (d.fatal) erreur(); });
+    hls.loadSource(r.url); hls.attachMedia(audio);
+  } else {
+    audio.src = r.url;
+  }
+}
+
+function choisir(r, jouer) {
+  actuelle = r; ecrire("station", r.id);
+  $("#enCours").textContent = r.nom;
+  document.title = r.nom + " · Radios Tech & IA";
+  if (jouer) demarrer(); else { statut("Appuie sur lecture pour écouter."); majBouton(); }
+  if ("mediaSession" in navigator) {
+    try { navigator.mediaSession.metadata = new MediaMetadata({ title: r.nom, artist: r.desc, album: "Radios Tech & IA" }); } catch (e) {}
+  }
+}
+
+function demarrer() {
+  if (!actuelle) return;
+  statut("Connexion…");
+  brancher(actuelle);
+  const p = audio.play();
+  if (p && p.catch) p.catch((e) => { if (e && e.name === "NotAllowedError") { statut("Appuie sur lecture pour écouter."); majBouton(); } else erreur(); });
+}
+
+function pause() {
+  audio.pause();
+  arreterHls(); audio.removeAttribute("src"); audio.load();
+  statut("En pause"); majBouton();
+}
+
+function erreur() {
+  if (!actuelle) return;
+  statut("Cette radio ne répond pas pour l'instant. Réessaie plus tard ou choisis-en une autre.", "erreur");
+  majBouton();
+}
+
+audio.addEventListener("playing", () => { statut("En direct", "direct"); majBouton(); });
+audio.addEventListener("waiting", () => { if (!audio.paused) statut("Chargement…"); });
+audio.addEventListener("pause", majBouton);
+audio.addEventListener("error", () => { if (audio.getAttribute("src")) erreur(); });
+
+$("#jouer").addEventListener("click", () => { if (audio.paused) demarrer(); else pause(); });
+
+function majVolume(v, garder) {
+  v = Math.max(0, Math.min(100, Number(v) || 0));
+  audio.volume = v / 100; $("#volume").value = v; $("#volTxt").textContent = v + " %";
+  if (garder) ecrire("volume", v);
+}
+$("#volume").addEventListener("input", (e) => majVolume(e.target.value, true));
+$("#muet").addEventListener("click", () => {
+  audio.muted = !audio.muted;
+  $("#muet").textContent = audio.muted ? "Son" : "Muet";
+  $("#muet").setAttribute("aria-label", audio.muted ? "Remettre le son" : "Couper le son");
+});
+
+document.querySelectorAll(".filtres button").forEach((b) => b.addEventListener("click", () => {
+  filtre = b.dataset.f; ecrire("filtre", filtre);
+  document.querySelectorAll(".filtres button").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  construire();
+}));
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && e.target === document.body && actuelle) { e.preventDefault(); $("#jouer").click(); }
+});
+
+if ("mediaSession" in navigator) {
+  try {
+    navigator.mediaSession.setActionHandler("play", () => demarrer());
+    navigator.mediaSession.setActionHandler("pause", () => pause());
+  } catch (e) {}
+}
+
+// Démarrage : derniers choix mémorisés (filtre, volume, radio), sans lancer le son.
+(function init() {
+  const f = lire("filtre", "tout");
+  filtre = ["tout", "fr", "en", "ma"].includes(f) ? f : "tout";
+  document.querySelectorAll(".filtres button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.f === filtre ? "true" : "false"));
+  majVolume(lire("volume", 80), false);
+  construire();
+  const r = RADIOS.find((x) => x.id === lire("station", ""));
+  if (r) choisir(r, false); else majBouton();
+})();
+</script>
+</body>
+</html>
