@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Radios Tech &amp; IA</title>
-<meta name="description" content="12 radios en direct : informatique, IA et actualité, en français, en anglais et du Maroc.">
+<meta name="description" content="19 radios en direct : informatique, IA et actualité, en français, en anglais, du Maroc, et musique internationale.">
 <style>
 /* Mise en page : liste de stations filtrable, lecteur fixé en bas de l'écran. */
 :root {
@@ -108,14 +108,15 @@ header p { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; }
 <div class="wrap">
   <header>
     <h1>Radios Tech &amp; IA</h1>
-    <p>Informatique, intelligence artificielle et actualité, en direct.</p>
+    <p>Informatique, intelligence artificielle, actualité et musique, en direct.</p>
   </header>
 
-  <div class="filtres" role="group" aria-label="Filtrer par langue">
+  <div class="filtres" role="group" aria-label="Filtrer par catégorie">
     <button type="button" id="f-tout" data-f="tout" aria-pressed="true">Toutes</button>
     <button type="button" id="f-fr" data-f="fr" aria-pressed="false">Français</button>
     <button type="button" id="f-en" data-f="en" aria-pressed="false">Anglais</button>
     <button type="button" id="f-ma" data-f="ma" aria-pressed="false">Maroc</button>
+    <button type="button" id="f-mu" data-f="mu" aria-pressed="false">Musique internationale</button>
   </div>
 
   <div id="groupes"></div>
@@ -154,9 +155,16 @@ const RADIOS = [
   { id: "bbcws",     g: "en", code: "BBC", nom: "BBC World Service",     desc: "World news, tech programmes", url: "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service" },
   { id: "npr",       g: "en", code: "NPR", nom: "NPR",                   desc: "US news, tech stories", url: "https://npr-ice.streamguys1.com/live.mp3" },
   { id: "atlantic",  g: "ma", code: "ATL", nom: "Atlantic Radio",        desc: "Économie et actualité du Maroc", url: "https://atlantic-sonic.nindohost.net:9300/stream" },
-  { id: "medi1",     g: "ma", code: "M1",  nom: "Médi 1 Radio",          desc: "Information Maghreb", url: "https://cdn.live.easybroadcast.io/live/83_medi1radio-maghreb_8s9i4bn/playlist.m3u8", hls: true }
+  { id: "medi1",     g: "ma", code: "M1",  nom: "Médi 1 Radio",          desc: "Information Maghreb", url: "https://cdn.live.easybroadcast.io/live/83_medi1radio-maghreb_8s9i4bn/playlist.m3u8", hls: true },
+  { id: "hitradio",  g: "ma", code: "HIT", nom: "Hit Radio",             desc: "Musique et divertissement, Maroc", url: "https://hitradio-maroc.ice.infomaniak.ch/hitradio-maroc-128.mp3" },
+  { id: "mfm",       g: "ma", code: "MFM", nom: "MFM Radio",             desc: "Musique et actualité du Maroc", url: "https://mfm.ice.infomaniak.ch/mfm-128.mp3" },
+  { id: "fip",       g: "mu", code: "FIP", nom: "FIP",                   desc: "Paris : jazz, rock, monde, électro, sans pub", url: "https://icecast.radiofrance.fr/fip-midfi.mp3" },
+  { id: "paradise",  g: "mu", code: "RP",  nom: "Radio Paradise",        desc: "Californie : rock, pop, monde, mélangés à la main", url: "https://stream.radioparadise.com/mp3-128" },
+  { id: "kexp",      g: "mu", code: "KXP", nom: "KEXP",                  desc: "Seattle : indé, découvertes, sessions live", url: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3" },
+  { id: "nts",       g: "mu", code: "NTS", nom: "NTS 1",                 desc: "Londres : DJ du monde entier, tous les styles", url: "https://stream-relay-geo.ntslive.net/stream" },
+  { id: "tsfjazz",   g: "mu", code: "TSF", nom: "TSF Jazz",              desc: "Paris : jazz 24 h/24", url: "https://tsfjazz.ice.infomaniak.ch/tsfjazz-high.mp3" }
 ];
-const GROUPES = { fr: "Français", en: "Anglais", ma: "Maroc" };
+const GROUPES = { fr: "Français", en: "Anglais", ma: "Maroc", mu: "Musique internationale" };
 
 const $ = (s) => document.querySelector(s);
 const audio = $("#audio");
@@ -292,7 +300,7 @@ if ("mediaSession" in navigator) {
 // Démarrage : derniers choix mémorisés (filtre, volume, radio), sans lancer le son.
 (function init() {
   const f = lire("filtre", "tout");
-  filtre = ["tout", "fr", "en", "ma"].includes(f) ? f : "tout";
+  filtre = ["tout", "fr", "en", "ma", "mu"].includes(f) ? f : "tout";
   document.querySelectorAll(".filtres button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.f === filtre ? "true" : "false"));
   majVolume(lire("volume", 80), false);
   construire();
